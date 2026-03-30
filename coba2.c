@@ -8,11 +8,28 @@
 #define HEIGHT 20
 
 int gameOver;
-int x, y, fruitX, fruitY, score;
+int x, y, fruitX, fruitY, score, highScore;
 int tailX[100], tailY[100];
 int nTail;
 enum eDirection { STOP = 0, LEFT, RIGHT, UP, DOWN };
 enum eDirection dir;
+HANDLE hConsole;
+
+void LoadHighScore() {
+    FILE *file = fopen("highscore.txt", "r");
+    if (file != NULL) {
+        fscanf(file, "%d", &highScore);
+        fclose(file);
+    }
+}
+
+void SaveHighScore() {
+    FILE *file = fopen("highscore.txt", "w");
+    if (file != NULL) {
+        fprintf(file, "%d", highScore);
+        fclose(file);
+    }
+}
 
 void Setup() {
     gameOver = 0;
@@ -22,44 +39,55 @@ void Setup() {
     fruitX = rand() % WIDTH;
     fruitY = rand() % HEIGHT;
     score = 0;
+    nTail = 0;
 }
 
 void Draw() {
     system("cls");
+    SetConsoleTextAttribute(hConsole, 15); // white for walls
     for (int i = 0; i < WIDTH + 2; i++)
         printf("#");
     printf("\n");
 
     for (int i = 0; i < HEIGHT; i++) {
         for (int j = 0; j < WIDTH; j++) {
-            if (j == 0)
+            if (j == 0) {
+                SetConsoleTextAttribute(hConsole, 15);
                 printf("#");
-            if (i == y && j == x)
+            } else if (i == y && j == x) {
+                SetConsoleTextAttribute(hConsole, 2); // green for head
                 printf("O");
-            else if (i == fruitY && j == fruitX)
+            } else if (i == fruitY && j == fruitX) {
+                SetConsoleTextAttribute(hConsole, 4); // red for fruit
                 printf("F");
-            else {
+            } else {
                 int print = 0;
                 for (int k = 0; k < nTail; k++) {
                     if (tailX[k] == j && tailY[k] == i) {
+                        SetConsoleTextAttribute(hConsole, 6); // yellow for body
                         printf("o");
                         print = 1;
                     }
                 }
-                if (!print)
+                if (!print) {
+                    SetConsoleTextAttribute(hConsole, 0); // black for space
                     printf(" ");
+                }
             }
 
-            if (j == WIDTH - 1)
+            if (j == WIDTH - 1) {
+                SetConsoleTextAttribute(hConsole, 15);
                 printf("#");
+            }
         }
         printf("\n");
     }
 
+    SetConsoleTextAttribute(hConsole, 15);
     for (int i = 0; i < WIDTH + 2; i++)
         printf("#");
     printf("\n");
-    printf("Score:%d\n", score);
+    printf("Score:%d High Score:%d\n", score, highScore);
 }
 
 void Input() {
@@ -121,6 +149,7 @@ void Logic() {
             gameOver = 1;
     if (x == fruitX && y == fruitY) {
         score += 10;
+        if (score > highScore) highScore = score;
         fruitX = rand() % WIDTH;
         fruitY = rand() % HEIGHT;
         nTail++;
@@ -128,7 +157,9 @@ void Logic() {
 }
 
 int main() {
+    hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
     srand(time(0));
+    LoadHighScore();
     Setup();
     while (!gameOver) {
         Draw();
@@ -136,5 +167,6 @@ int main() {
         Logic();
         Sleep(100);
     }
+    SaveHighScore();
     return 0;
 }
